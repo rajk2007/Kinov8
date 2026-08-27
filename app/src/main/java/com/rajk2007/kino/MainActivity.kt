@@ -5,7 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,10 +17,10 @@ import com.rajk2007.kino.data.DetailsViewModel
 import com.rajk2007.kino.data.HomeViewModel
 import com.rajk2007.kino.downloads.AppContextHolder
 import com.rajk2007.kino.ui.DetailsScreen
-import com.rajk2007.kino.ui.HomeScreen
+import com.rajk2007.kino.ui.KinoTheme
 import com.rajk2007.kino.ui.LibraryScreen
 import com.rajk2007.kino.ui.SearchScreen
-import com.rajk2007.kino.ui.KinoTheme
+import com.rajk2007.kino.ui.home.KinoHomeScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,29 +33,28 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun KinoApp() {
     val nav = rememberNavController()
-    fun openDetails(itemUrl: String, apiName: String) {
-        nav.navigate("details?url=${Uri.encode(itemUrl)}&apiName=${Uri.encode(apiName)}")
+    fun openDetails(url: String, apiName: String) {
+        nav.navigate("details?url=${Uri.encode(url)}&apiName=${Uri.encode(apiName)}")
     }
-    NavHost(navController = nav, startDestination = "home", modifier = Modifier) {
+    NavHost(navController = nav, startDestination = "home") {
         composable("home") {
-            HomeScreen(
-                onOpen = { item -> openDetails(item.url, item.apiName) },
-                onSearch = { nav.navigate("search") },
-                onLibrary = { nav.navigate("library") },
-                vm = viewModel<HomeViewModel>()
+            val vm: HomeViewModel = viewModel()
+            val state by vm.state.collectAsStateWithLifecycle()
+            KinoHomeScreen(
+                sections = state.sections,
+                isLoading = state.loading,
+                error = state.error,
+                onMovieClick = { item -> openDetails(item.url, item.apiName) },
+                onSearchClick = { nav.navigate("search") },
+                onLibraryClick = { nav.navigate("library") },
+                onRefresh = vm::refresh
             )
         }
         composable("search") {
-            SearchScreen(
-                onBack = { nav.popBackStack() },
-                onOpen = { item -> openDetails(item.url, item.apiName) }
-            )
+            SearchScreen(onBack = { nav.popBackStack() }, onOpen = { item -> openDetails(item.url, item.apiName) })
         }
         composable("library") {
-            LibraryScreen(
-                onBack = { nav.popBackStack() },
-                onOpen = { item -> openDetails(item.url, item.apiName) }
-            )
+            LibraryScreen(onBack = { nav.popBackStack() }, onOpen = { item -> openDetails(item.url, item.apiName) })
         }
         composable(
             "details?url={url}&apiName={apiName}",

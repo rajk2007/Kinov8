@@ -32,6 +32,12 @@ class MovieBoxProvider : MainAPI() {
 
     private val http = OkHttpClient()
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+    private val browserHeaders = mapOf(
+        "User-Agent" to "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language" to "en-US,en;q=0.5",
+        "Connection" to "keep-alive"
+    )
 
     // These are the provider's public signing values, kept in the provider module so
     // all MovieBox requests use the same protocol as the upstream extension.
@@ -70,12 +76,10 @@ class MovieBoxProvider : MainAPI() {
     private suspend fun request(method: String, path: String, body: String? = null, extraHeaders: Map<String, String> = emptyMap()): String = withContext(Dispatchers.IO) {
         val url = if (path.startsWith("http")) path else "$mainUrl$path"
         val builder = Request.Builder().url(url)
-            .header("user-agent", "com.community.mbox.in/50020042 (Linux; Android 16; KINO)")
-            .header("accept", "application/json")
-            .header("content-type", "application/json")
-            .header("connection", "keep-alive")
+        browserHeaders.forEach { (key, value) -> builder.header(key, value) }
+        builder.header("content-type", "application/json")
             .header("x-client-token", clientToken())
-            .header("x-tr-signature", signature(method, "application/json", "application/json; charset=utf-8", url, body))
+            .header("x-tr-signature", signature(method, browserHeaders.getValue("Accept"), "application/json; charset=utf-8", url, body))
             .header("x-client-info", clientInfo)
             .header("x-client-status", "0")
         extraHeaders.forEach { (key, value) -> builder.header(key, value) }
