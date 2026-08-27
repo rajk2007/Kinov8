@@ -11,9 +11,9 @@ import java.util.concurrent.TimeUnit
  * is the correct equivalent here: it wraps OkHttp with NiceHttp request helpers
  * and retains cookies between requests, which is important for Cloudflare checks.
  */
-object NetworkModule {
+object Network {
     val browserHeaders: Map<String, String> = mapOf(
-        "User-Agent" to "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        "User-Agent" to "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
         "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language" to "en-US,en;q=0.5",
         "Connection" to "keep-alive"

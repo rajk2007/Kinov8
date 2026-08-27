@@ -9,7 +9,7 @@ import com.rajk2007.kino.core.MainAPI
 import com.rajk2007.kino.core.MediaType
 import com.rajk2007.kino.core.SearchResponse
 import com.rajk2007.kino.core.StreamType
-import com.rajk2007.kino.network.NetworkModule
+import com.rajk2007.kino.network.Network
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
@@ -28,7 +28,7 @@ class MovieBoxProvider : MainAPI() {
     override val mainUrl = "https://api.inmoviebox.com"
 
     /** CloudStream-style NiceHttp Session with browser defaults and cookie persistence. */
-    private val app = NetworkModule.app
+    private val app = Network.app
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
     // These are the provider's public signing values, kept in the provider module so
@@ -70,11 +70,11 @@ class MovieBoxProvider : MainAPI() {
         val apiHeaders = mapOf(
             "content-type" to "application/json",
             "x-client-token" to clientToken(),
-            "x-tr-signature" to signature(method, NetworkModule.browserHeaders.getValue("Accept"), "application/json; charset=utf-8", url, body),
+            "x-tr-signature" to signature(method, Network.browserHeaders.getValue("Accept"), "application/json; charset=utf-8", url, body),
             "x-client-info" to clientInfo,
             "x-client-status" to "0"
         )
-        val headers = NetworkModule.browserHeaders + apiHeaders + extraHeaders
+        val headers = Network.browserHeaders + apiHeaders + extraHeaders
         val response = if (body != null) {
             app.post(url, headers = headers, requestBody = body.toRequestBody(jsonMediaType))
         } else {
