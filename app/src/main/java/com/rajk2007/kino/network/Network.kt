@@ -1,5 +1,6 @@
 package com.rajk2007.kino.network
 
+import android.content.Context
 import com.lagradost.nicehttp.Session
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
@@ -19,18 +20,28 @@ object Network {
         "Connection" to "keep-alive"
     )
 
-    /** The single app client used by MovieBoxProvider for every get/post call. */
-    val app: Session by lazy {
+    private var appInstance: Session? = null
+
+    /** Initialize once from Application/Activity before any provider request. */
+    @Synchronized
+    fun initialize(context: Context) {
+        if (appInstance != null) return
+        val appContext = context.applicationContext
         val client = OkHttpClient.Builder()
             .followRedirects(true)
             .followSslRedirects(true)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(45, TimeUnit.SECONDS)
             .writeTimeout(45, TimeUnit.SECONDS)
+            .addInterceptor(CloudflareInterceptor(appContext, browserHeaders))
             .build()
-        Session(client).apply {
+        appInstance = Session(client).apply {
             defaultHeaders = browserHeaders
             defaultTimeOut = 45
         }
     }
+
+    /** The single configured client used by MovieBoxProvider for every request. */
+    val app: Session
+        get() = appInstance ?: error("Network.initialize(context) must be called before using Network.app")
 }

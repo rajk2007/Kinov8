@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import com.rajk2007.kino.data.DetailsViewModel
 import com.rajk2007.kino.data.HomeViewModel
 import com.rajk2007.kino.downloads.AppContextHolder
+import com.rajk2007.kino.network.Network
 import com.rajk2007.kino.ui.DetailsScreen
 import com.rajk2007.kino.ui.KinoTheme
 import com.rajk2007.kino.ui.LibraryScreen
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppContextHolder.context = applicationContext
+        Network.initialize(applicationContext)
         setContent { KinoTheme { KinoApp() } }
     }
 }
