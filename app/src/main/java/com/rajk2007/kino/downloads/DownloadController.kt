@@ -41,6 +41,15 @@ object DownloadController {
 
 object AppContextHolder { var context: Context? = null }
 
+object DownloadRepository {
+    fun snapshot(context: Context): List<Download> {
+        val cursor = KinoDownloadService.managerFor(context).downloadIndex.getDownloads()
+        return cursor.use {
+            buildList { while (it.moveToNext()) add(it.download) }
+        }
+    }
+}
+
 class KinoDownloadService : DownloadService(
     FOREGROUND_NOTIFICATION_ID,
     DEFAULT_FOREGROUND_NOTIFICATION_UPDATE_INTERVAL,
@@ -48,7 +57,7 @@ class KinoDownloadService : DownloadService(
     R.string.app_name,
     0
 ) {
-    override fun getDownloadManager(): DownloadManager = downloadManager(this)
+    override fun getDownloadManager(): DownloadManager = managerFor(this)
 
     override fun getScheduler(): Scheduler? = if (android.os.Build.VERSION.SDK_INT >= 21) {
         PlatformScheduler(this, JOB_ID)
@@ -65,7 +74,7 @@ class KinoDownloadService : DownloadService(
         private const val CHANNEL_ID = "kino_downloads"
         @Volatile private var manager: DownloadManager? = null
 
-        private fun downloadManager(context: Context): DownloadManager = manager ?: synchronized(this) {
+        internal fun managerFor(context: Context): DownloadManager = manager ?: synchronized(this) {
             manager ?: run {
                 val database = StandaloneDatabaseProvider(context)
                 val cache = SimpleCache(File(context.cacheDir, "kino-downloads"), NoOpCacheEvictor(), database)

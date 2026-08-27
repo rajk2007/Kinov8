@@ -49,7 +49,13 @@ class HomeViewModel : ViewModel() {
     }
 }
 
-data class DetailsUiState(val loading: Boolean = true, val response: LoadResponse? = null, val links: List<com.rajk2007.kino.core.ExtractorLink> = emptyList(), val error: String? = null)
+data class DetailsUiState(
+    val loading: Boolean = true,
+    val response: LoadResponse? = null,
+    val links: List<com.rajk2007.kino.core.ExtractorLink> = emptyList(),
+    val linksLoading: Boolean = false,
+    val error: String? = null
+)
 
 class DetailsViewModel : ViewModel() {
     val movieBoxApi = MovieBoxProvider()
@@ -67,9 +73,10 @@ class DetailsViewModel : ViewModel() {
 
     fun loadLinks(data: String) {
         viewModelScope.launch {
+            _state.value = _state.value.copy(linksLoading = true, error = null)
             runCatching { movieBoxApi.loadLinks(data) }
-                .onSuccess { _state.value = _state.value.copy(links = it) }
-                .onFailure { _state.value = _state.value.copy(error = it.message ?: "No playable links found") }
+                .onSuccess { _state.value = _state.value.copy(links = it, linksLoading = false) }
+                .onFailure { _state.value = _state.value.copy(linksLoading = false, error = it.message ?: "No playable links found") }
         }
     }
 }
