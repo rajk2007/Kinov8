@@ -9,11 +9,8 @@ import com.rajk2007.kino.core.MainAPI
 import com.rajk2007.kino.core.MediaType
 import com.rajk2007.kino.core.SearchResponse
 import com.rajk2007.kino.core.StreamType
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.rajk2007.kino.network.NetworkModule
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -30,14 +27,9 @@ class MovieBoxProvider : MainAPI() {
     override val name = "MovieBox"
     override val mainUrl = "https://api.inmoviebox.com"
 
-    private val http = OkHttpClient()
+    /** CloudStream-style NiceHttp Session with browser defaults and cookie persistence. */
+    private val app = NetworkModule.app
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-    private val browserHeaders = mapOf(
-        "User-Agent" to "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
-        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language" to "en-US,en;q=0.5",
-        "Connection" to "keep-alive"
-    )
 
     // These are the provider's public signing values, kept in the provider module so
     // all MovieBox requests use the same protocol as the upstream extension.
@@ -73,21 +65,23 @@ class MovieBoxProvider : MainAPI() {
         return "$timestamp|2|${Base64.getEncoder().encodeToString(mac.doFinal(canonical.toByteArray()))}"
     }
 
-    private suspend fun request(method: String, path: String, body: String? = null, extraHeaders: Map<String, String> = emptyMap()): String = withContext(Dispatchers.IO) {
+    private suspend fun request(method: String, path: String, body: String? = null, extraHeaders: Map<String, String> = emptyMap()): String {
         val url = if (path.startsWith("http")) path else "$mainUrl$path"
-        val builder = Request.Builder().url(url)
-        browserHeaders.forEach { (key, value) -> builder.header(key, value) }
-        builder.header("content-type", "application/json")
-            .header("x-client-token", clientToken())
-            .header("x-tr-signature", signature(method, browserHeaders.getValue("Accept"), "application/json; charset=utf-8", url, body))
-            .header("x-client-info", clientInfo)
-            .header("x-client-status", "0")
-        extraHeaders.forEach { (key, value) -> builder.header(key, value) }
-        if (body != null) builder.method(method, body.toRequestBody(jsonMediaType)) else builder.method(method, null)
-        http.newCall(builder.build()).execute().use { response ->
-            if (!response.isSuccessful) error("MovieBox request failed: HTTP ${response.code}")
-            response.body?.string().orEmpty()
+        val apiHeaders = mapOf(
+            "content-type" to "application/json",
+            "x-client-token" to clientToken(),
+            "x-tr-signature" to signature(method, NetworkModule.browserHeaders.getValue("Accept"), "application/json; charset=utf-8", url, body),
+            "x-client-info" to clientInfo,
+            "x-client-status" to "0"
+        )
+        val headers = NetworkModule.browserHeaders + apiHeaders + extraHeaders
+        val response = if (body != null) {
+            app.post(url, headers = headers, requestBody = body.toRequestBody(jsonMediaType))
+        } else {
+            app.get(url, headers = headers)
         }
+        if (!response.isSuccessful) error("MovieBox request failed: HTTP ${response.code}")
+        return response.body?.string().orEmpty()
     }
 
     override suspend fun getMainPage(): List<HomeSection> {
